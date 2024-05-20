@@ -40,6 +40,10 @@ class MathChallengeGame:
         self.status_bar = tk.Label(self.root, text="", font=("Helvetica", 12))
         self.status_bar.pack(pady=10)
 
+        self.progress_canvas = tk.Canvas(self.root, width=300, height=20, bg="white")
+        self.progress_canvas.pack(pady=10)
+        self.progress_bar = self.progress_canvas.create_rectangle(0, 0, 0, 20, fill="green")
+
         self.new_game_button = tk.Button(self.root, text="New Game", command=self.prompt_problem_type)
         self.new_game_button.pack(pady=10)
 
@@ -95,6 +99,7 @@ class MathChallengeGame:
         self.time_label.config(text=f"Time Left: {self.time_left}s")
         self.status_bar.config(text="")
         self.answer_entry.config(state=tk.NORMAL)
+        self.progress_canvas.coords(self.progress_bar, 0, 0, 0, 20)  # Reset progress bar
         self.next_problem()
         self.update_time()
         self.answer_entry.focus_set()  # Focus the answer entry field
@@ -150,6 +155,7 @@ class MathChallengeGame:
         
         self.score_label.config(text=f"Score: {self.score}")
         self.update_status_bar()
+        self.update_progress_bar()
         self.next_problem()
 
     def update_time(self):
@@ -168,6 +174,16 @@ class MathChallengeGame:
             self.status_bar.config(text=f"Your Score: {self.score}, Top Score: {top_score}")
         else:
             self.status_bar.config(text=f"Your Score: {self.score}")
+
+    def update_progress_bar(self):
+        category_scores = self.top_scores.get(self.problem_type, {})
+        top_scores = sorted(category_scores.values(), reverse=True)[:10]
+        if top_scores:
+            top_score = top_scores[0]
+            progress = min(self.score / top_score, 1.0)  # Ensure the progress doesn't exceed 1.0
+        else:
+            progress = 1.0
+        self.progress_canvas.coords(self.progress_bar, 0, 0, 300 * progress, 20)
 
     def end_game(self):
         self.problem_label.config(text="Game Over!")
