@@ -33,10 +33,13 @@ class MathChallengeGame:
         
         self.score_label = tk.Label(self.root, text="Score: 0", font=("Helvetica", 12))
         self.score_label.pack(pady=10)
-        
+
         self.time_label = tk.Label(self.root, text="Time Left: 60s", font=("Helvetica", 12))
         self.time_label.pack(pady=10)
         
+        self.status_bar = tk.Label(self.root, text="", font=("Helvetica", 12))
+        self.status_bar.pack(pady=10)
+
         self.new_game_button = tk.Button(self.root, text="New Game", command=self.prompt_problem_type)
         self.new_game_button.pack(pady=10)
 
@@ -90,6 +93,7 @@ class MathChallengeGame:
         self.time_left = 60
         self.score_label.config(text=f"Score: {self.score}")
         self.time_label.config(text=f"Time Left: {self.time_left}s")
+        self.status_bar.config(text="")
         self.answer_entry.config(state=tk.NORMAL)
         self.next_problem()
         self.update_time()
@@ -145,6 +149,7 @@ class MathChallengeGame:
             self.feedback_label.config(text="Please enter a number", fg="red")
         
         self.score_label.config(text=f"Score: {self.score}")
+        self.update_status_bar()
         self.next_problem()
 
     def update_time(self):
@@ -154,6 +159,15 @@ class MathChallengeGame:
             self.root.after(1000, self.update_time)
         else:
             self.end_game()
+
+    def update_status_bar(self):
+        category_scores = self.top_scores.get(self.problem_type, {})
+        top_scores = sorted(category_scores.values(), reverse=True)[:10]
+        if top_scores:
+            top_score = top_scores[0]
+            self.status_bar.config(text=f"Your Score: {self.score}, Top Score: {top_score}")
+        else:
+            self.status_bar.config(text=f"Your Score: {self.score}")
 
     def end_game(self):
         self.problem_label.config(text="Game Over!")
@@ -167,26 +181,32 @@ class MathChallengeGame:
             with open(self.scores_file, "r") as file:
                 return json.load(file)
         else:
-            return {}
+            return {"addition_subtraction": {}, "multiplication": {}}
 
     def save_score(self):
-        # Update the top scores with the highest score for each user
-        self.top_scores[self.username] = max(self.score, self.top_scores.get(self.username, 0))
-        
-        # Sort the top scores and keep only the top 10
-        sorted_scores = sorted(self.top_scores.items(), key=lambda x: x[1], reverse=True)[:10]
-        self.top_scores = dict(sorted_scores)
+        category_scores = self.top_scores.get(self.problem_type, {})
+        category_scores[self.username] = max(self.score, category_scores.get(self.username, 0))
+        self.top_scores[self.problem_type] = category_scores
         
         with open(self.scores_file, "w") as file:
             json.dump(self.top_scores, file)
+        
+        top_scores = sorted(category_scores.values(), reverse=True)[:10]
+        if self.score >= top_scores[0]:
+            self.status_bar.config(text="Congrats! You're the new Champion!")
+        elif self.score in top_scores[:3]:
+            self.status_bar.config(text="Congrats! You're in the top three!")
 
     def show_top_scores(self):
         top_scores_window = tk.Toplevel(self.root)
         top_scores_window.title("Champions")
         
         tk.Label(top_scores_window, text="Champions", font=("Helvetica", 16)).pack(pady=10)
-        for username, score in self.top_scores.items():
-            tk.Label(top_scores_window, text=f"{username}: {score}", font=("Helvetica", 14)).pack()
+        for category, scores in self.top_scores.items():
+            tk.Label(top_scores_window, text=category.capitalize(), font=("Helvetica", 14)).pack(pady=5)
+            sorted_scores = sorted(scores.items(), key=lambda x: x[1], reverse=True)[:10]
+            for username, score in sorted_scores:
+                tk.Label(top_scores_window, text=f"{username}: {score}", font=("Helvetica", 14)).pack()
 
 if __name__ == "__main__":
     root = tk.Tk()
